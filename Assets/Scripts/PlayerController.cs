@@ -76,6 +76,11 @@ public class PlayerController : MonoBehaviourPunCallbacks, IDamageable
 
     private void Start()
     {
+        InitializePlayerMultiplayerSetup();
+    }
+
+    private void InitializePlayerMultiplayerSetup()
+    {
         if (PV.IsMine)
         {
             Cursor.visible = false;
@@ -106,7 +111,9 @@ public class PlayerController : MonoBehaviourPunCallbacks, IDamageable
             return;
         }
 
-        if (transform.position.y < -10f)
+        bool isPlayerBelowGround = transform.position.y < -10f;
+
+        if (isPlayerBelowGround)
         {
             Die();
         }
@@ -141,14 +148,15 @@ public class PlayerController : MonoBehaviourPunCallbacks, IDamageable
             }
         }
 
-        if (velocity.y > 0)
+        switch (velocity.y)
         {
-            JumpSFX();
-            jumpSoundPlayed = true;
-        }
-        else if (velocity.y < 0)
-        {
-            jumpSoundPlayed = false;
+            case > 0:
+                JumpSFX();
+                jumpSoundPlayed = true;
+                break;
+            case < 0:
+                jumpSoundPlayed = false;
+                break;
         }
 
         MouseMovement();
@@ -205,11 +213,10 @@ public class PlayerController : MonoBehaviourPunCallbacks, IDamageable
         xRot -= mouseY;
         xRot = Mathf.Clamp(xRot, -90f, 90f);
 
-        if (PlayerMenuManager.I.isGamePaused == false)
-        {
-            cameraHolder.transform.localRotation = Quaternion.Euler(xRot, 0f, 0f);
-            playerBody.Rotate(Vector3.up * mouseX);
-        }
+        if (PlayerMenuManager.I.isGamePaused) return;
+
+        cameraHolder.transform.localRotation = Quaternion.Euler(xRot, 0f, 0f);
+        playerBody.Rotate(Vector3.up * mouseX);
     }
 
     private void JumpSFX()
@@ -243,12 +250,11 @@ public class PlayerController : MonoBehaviourPunCallbacks, IDamageable
 
         previousItemIndex = itemIndex;
 
-        if (PV.IsMine)
-        {
-            Hashtable hash = new();
-            hash.Add("itemIndex", itemIndex);
-            PhotonNetwork.LocalPlayer.SetCustomProperties(hash);
-        }
+        if (!PV.IsMine) return;
+
+        Hashtable hash = new();
+        hash.Add("itemIndex", itemIndex);
+        PhotonNetwork.LocalPlayer.SetCustomProperties(hash);
     }
 
     public override void OnPlayerPropertiesUpdate(Player targetPlayer, Hashtable changedProps)
